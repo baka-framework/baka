@@ -19,12 +19,14 @@ CLASSIFIERS = [
     'Intended Audience :: Developers',
     'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
-    'Programming Language :: Python :: 2.7. 3.4+',
+    'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
 ]
 INSTALL_REQUIRES = [
-    'setuptools',
-    'pyramid',
-    'werkzeug'
+    'setuptools>=27',
+    'pyramid>=1.9',
+    'werkzeug>=0.12'
 ]
 EXTRAS_REQUIRE = {
     'dev': ['check-manifest'],

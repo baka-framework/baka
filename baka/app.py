@@ -8,25 +8,55 @@
     :license: BSD, see LICENSE for more details.
 """
 import logging
+import logging.config
 import os
 
 from pyramid.config import Configurator
 from pyramid.interfaces import IViewMapperFactory
 from pyramid.path import DottedNameResolver
 from .settings import SettingError
-from .security import derive_key
-from ._compat import text_type
+from .log import log, logging_format
 import venusian
-
-log = logging.getLogger(__name__)
+from zope.interface import Interface, Attribute, implementer
 
 
 class Baka(object):
-
-    def __init__(self, pathname, settings):
+    def __init__(self, pathname, **settings):
         self.path = pathname
         self.config = self.configure(settings)
+        self.config.add_directive('add_ext', self.add_ext_config)
         self.config.include(__name__)
+        self.registry = _BakaExtensions
+
+        # Only set up a default log handler if the
+        # end-user application didn't set anything up.
+        if not (logging.root.handlers and log.level == logging.NOTSET and settings.get('LOGGING')):
+            formatter = logging.Formatter(logging_format)
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            log.addHandler(handler)
+            log.setLevel(logging.INFO)
+
+    def __getattr__(self, name):
+        # allow directive extension names to work
+        directives = getattr(self.registry, '_directives', {})
+        c = directives.get(name)
+        if c is None:
+            raise AttributeError(name)
+
+        # Create a bound method (works on both Py2 and Py3)
+        # http://stackoverflow.com/a/1015405/209039
+        m = c.__get__(self, self.__class__)
+        return m
+
+    def add_ext_config(self, config, name, directive):
+        self.add_ext(name, directive)
+
+    def add_ext(self, name, directive):
+        c = DottedNameResolver().maybe_resolve(directive)
+        if not hasattr(self.registry, '_directives'):
+            self.registry._directives = {}
+        self.registry._directives[name] = c
 
     def configure(self, settings):
         if settings.get('environ') is None:
@@ -50,27 +80,12 @@ class Baka(object):
                      'environment variable!')
             settings['secret_key'] = os.urandom(64)
 
-        if 'baka.client_id' not in settings:
-            settings['baka.client_id'] = text_type(
-                derive_key(
-                    settings.setdefault('baka.client_id', 'baka').encode(),
-                    settings.setdefault('baka.salt', 'baka.salt').encode(),
-                    'baka.client_id'.encode()))
-            settings['baka.client_secret'] = text_type(
-                derive_key(
-                    settings.setdefault('baka.client_secret', 'baka').encode(),
-                    settings.setdefault('baka.salt', 'baka.salt').encode(),
-                    'baka.client_secret'.encode()))
-
         # Set up SQLAlchemy debug logging
         if 'debug_query' in settings:
             level = logging.INFO
             if settings['debug_query'] == 'trace':
                 level = logging.DEBUG
             logging.getLogger('sqlalchemy.engine').setLevel(level)
-
-        # app.config['AWS_ACCESS_KEY_ID'] = os.environ['AWS_ACCESS_KEY_ID']
-        # app.config['AWS_SECRET_ACCESS_KEY'] = os.environ['AWS_SECRET_ACCESS_KEY']
 
         return Configurator(settings=settings)
 
@@ -107,8 +122,8 @@ class Baka(object):
 
         return decorator
 
-    def scan(self):
-        self.config.scan(self.path)
+    def scan(self, _path=None):
+        self.config.scan(_path or self.path)
 
     def run(self, host=None, port=None, **options):
         settings = self.config.get_settings()
@@ -121,14 +136,18 @@ class Baka(object):
         options.setdefault('use_debugger', settings.get('debug_all'))
 
         from werkzeug.serving import run_simple
-        run_simple(host, port, self.wsgi_app(), **options)
+        run_simple(host, port, self.config.make_wsgi_app(), **options)
 
-    def wsgi_app(self):
-        return self.config.make_wsgi_app()
+    def wsgi_app(self, env, response):
+        app = self.config.make_wsgi_app()
+        return app(env, response)
 
-    def __call__(self):
+    def __call__(self, env, response):
         """Shortcut for :attr:`wsgi_app`."""
-        return self.wsgi_app()
+        return self.wsgi_app(env, response)
+
+    def cetak(self):
+        log.info('cetak')
 
 
 """Adaption of tomb_routes.
@@ -250,3 +269,19 @@ def add_simple_route(
 
 def includeme(config):
     config.add_directive('add_simple_route', add_simple_route)
+
+
+class IBakaExtensions(Interface):
+    """ Marker interface for storing baka extensions (properties and
+    methods) which will be added to the baka object."""
+    descriptors = Attribute(
+        """A list of descriptors that will be added to each baka singleton.""")
+    methods = Attribute(
+        """A list of methods to be added to baka singleton.""")
+
+
+@implementer(IBakaExtensions)
+class _BakaExtensions(object):
+    def __init__(self):
+        self.descriptors = {}
+        self.methods = {}
