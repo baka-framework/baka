@@ -79,9 +79,10 @@ using baka include, you can mixing separate module in any different file and mod
 Install
 -------
 
-pip install baka
+.. code:: python
 
-Install with code
+    pip install baka
+
 
 Saran dan Kontribusi
 --------------------
