@@ -10,8 +10,9 @@
 import logging
 import logging.config
 import os
+import sys
 
-from pyramid.config import Configurator
+from pyramid.config import Configurator, ConfigurationError
 from pyramid.interfaces import IViewMapperFactory
 from pyramid.path import DottedNameResolver
 from .settings import SettingError
@@ -22,7 +23,12 @@ from zope.interface import Interface, Attribute, implementer
 
 class Baka(object):
     def __init__(self, pathname, **settings):
-        self.path = pathname
+        """initial config for singleton baka framework
+
+        :param import_name: the name of the application package
+        :param settings: *optional dict settings for pyramid configuration
+        """
+        self.import_name = pathname
         self.config = self.configure(settings)
         self.config.add_directive('add_ext', self.add_ext_config)
         self.config.include(__name__)
@@ -37,7 +43,29 @@ class Baka(object):
             log.addHandler(handler)
             log.setLevel(logging.INFO)
 
+    @property
+    def name(self):
+        """The name of the application.  This is usually the import name
+        with the difference that it's guessed from the run file if the
+        import name is main.  This name is used as a display name when
+        Baka needs the name of the application.  It can be set and overridden
+        to change the value.
+        """
+
+        module = sys.modules[self.import_name]
+        f = getattr(module, '__file__', '')
+        if f in ['__init__.py', '__init__$py']:
+            # Module is a package
+            return module
+        # Go up one level to get package
+        package_name = module.__name__.rsplit('.', 1)[0]
+        return sys.modules[package_name]
+
     def __getattr__(self, name):
+        """ built-in method for get attribute baka object
+        :param name: selector
+        :return:
+        """
         # allow directive extension names to work
         directives = getattr(self.registry, '_directives', {})
         c = directives.get(name)
@@ -50,15 +78,28 @@ class Baka(object):
         return m
 
     def add_ext_config(self, config, name, directive):
+        """ This does the same thing as :meth:`add_ext` but using for pyramid configuration
+        :param config: the config from pyramid configuration object
+        :param name: the name of directive
+        :param directive: the callback function directive
+        """
         self.add_ext(name, directive)
 
     def add_ext(self, name, directive):
+        """ Registry of baka directive
+        :param name: the name of directive
+        :param directive: the callback function directive
+        """
         c = DottedNameResolver().maybe_resolve(directive)
         if not hasattr(self.registry, '_directives'):
             self.registry._directives = {}
         self.registry._directives[name] = c
 
     def configure(self, settings):
+        """ This initial settings of pyramid Configurator
+        :param settings: :dict settings of Configurator
+        :return: pyramid.config.Configurator
+        """
         if settings.get('environ') is None:
             environ = os.environ
         if settings is None:
@@ -89,25 +130,57 @@ class Baka(object):
 
         return Configurator(settings=settings)
 
-    def route(self, path, **settings):
-        settings['path'] = path
+    def route(self, path, **options):
+        """A decorator that is used to register a view function for a
+        given URL rule.  This does the same thing as :meth:`add_simple_route`
+        but is intended for decorator usage::
+
+            @app.route('/', renderer='todo:templates/index.html')
+            def index(req):
+                return {'baka', 'Hello World'}
+
+            @app.route('/', renderer='json')
+            def index(req):
+                return {'baka', 'Hello World'}
+
+            @app.route('/')
+            def index(req):
+                return {'baka', 'Hello World'}
+
+        ```pyramid.view.view_config```
+        A function, class or method :term:`decorator` which allows a
+        developer to create view registrations nearer to a :term:`view
+        callable` definition than use :term:`imperative
+        configuration` to do the same.
+
+        :param rule: the URL rule as string
+        :param renderer: (default: json) the format templates for render in response view
+        :param options: supports the following keyword arguments:
+                        ``context``, ``exception``, ``permission``, ``name``,
+                        ``request_type``, ``route_name``, ``request_method``, ``request_param``,
+                        ``containment``, ``xhr``, ``accept``, ``header``, ``path_info``,
+                        ``custom_predicates``, ``decorator``, ``mapper``, ``http_cache``,
+                        ``require_csrf``, ``match_param``, ``check_csrf``, ``physical_path``, and
+                        ``view_options``.
+        """
+        options['path'] = path
 
         def decorator(wrapped):
             """Attach the decorator with Venusian"""
 
-            log.debug(settings.get('request_method', 'GET'))
-            log.debug(settings.get('route_name', 'route_name'))
+            log.debug(options.get('request_method', 'GET'))
+            log.debug(options.get('route_name', 'route_name'))
 
             def callback(scanner, _name, wrapped):
                 """Register a view; called on config.scan"""
                 config = scanner.config.with_package(info.module)
 
                 # Default to not appending slash
-                if not "append_slash" in settings:
+                if not "append_slash" in options:
                     append_slash = False
 
                 # pylint: disable=W0142
-                add_simple_route(config, wrapped, **settings)
+                add_simple_route(config, wrapped, **options)
 
             info = venusian.attach(wrapped, callback)
 
@@ -115,17 +188,111 @@ class Baka(object):
                 # if the decorator was attached to a method in a class, or
                 # otherwise executed at class scope, we need to set an
                 # 'attr' into the settings if one isn't already in there
-                if settings.get('attr') is None:
-                    settings['attr'] = wrapped.__name__
+                if options.get('attr') is None:
+                    options['attr'] = wrapped.__name__
 
             return wrapped
 
         return decorator
 
-    def scan(self, _path=None):
-        self.config.scan(_path or self.path)
+    def _get_package(self, dotted):
+        """ get baka application package
+        :param dotted: path of package
+        :return: package of baka application name
+        """
+        module = sys.modules[dotted]
+        f = getattr(module, '__file__', '')
+        if f in ['__init__.py', '__init__$py']:
+            # Module is a package
+            return module
+        # Go up one level to get package
+        package_name = module.__name__.rsplit('.', 1)[0]
+        return sys.modules[package_name]
+
+    def include(self, callable):
+        """ Include a configuration callable, to support imperative
+        application extensibility.
+
+        .. warning:: In versions of :app:`Pyramid` prior to 1.2, this
+            function accepted ``*callables``, but this has been changed
+            to support only a single callable.
+
+        A configuration callable should be a callable that accepts a single
+        argument named ``config``, which will be an instance of a
+        :term:`Configurator`.  However, be warned that it will not be the same
+        configurator instance on which you call this method.  The
+        code which runs as a result of calling the callable should invoke
+        methods on the configurator passed to it which add configuration
+        state.  The return value of a callable will be ignored.
+
+        Values allowed to be presented via the ``callable`` argument to
+        this method: any callable Python object or any :term:`dotted Python
+        name` which resolves to a callable Python object.  It may also be a
+        Python :term:`module`, in which case, the module will be searched for
+        a callable named ``includeme``, which will be treated as the
+        configuration callable.
+
+        For example, if the ``includeme`` function below lives in a module
+        named ``myapp.myconfig``:
+
+        .. code-block:: python
+           :linenos:
+
+           # myapp.myconfig module
+
+           def my_view(request):
+               from pyramid.response import Response
+               return Response('OK')
+
+           def includeme(config):
+               config.add_view(my_view)
+
+        You might cause it to be included within your Baka application like
+        so:
+
+        .. code-block:: python
+           :linenos:
+
+           from pyramid.config import Configurator
+
+           def main(global_config, **settings):
+               config = Configurator()
+               config.include('myapp.myconfig.includeme')
+
+        :param path:
+        """
+
+        _resolver = DottedNameResolver(self.name)
+        _callable = None
+        try:
+            modules = self._get_package(callable)
+            _callable = _resolver.maybe_resolve(modules)
+        except KeyError:
+            _callable = _resolver.maybe_resolve(callable)
+        finally:
+            if _callable is None:
+                raise ConfigurationError(
+                    'No source file for module %r (.py file must exist, '
+                    'refusing to use orphan .pyc or .pyo file).' % _callable)
+            self.config.include(_callable)
+
+    def scan(self, path=None):
+        """ Venusian scanner config
+        :param path:
+        """
+        path = self._get_package(path or self.import_name)
+        _resolver = DottedNameResolver(self.name)
+        path = _resolver.maybe_resolve(path)
+        log.info(path)
+        self.config.scan(path)
 
     def run(self, host=None, port=None, **options):
+        """ application runner server for development stage. not for production.
+
+        :param host: url host application server
+        :param port: number of port
+        :param options: dict options for werkzeug wsgi server
+        """
         settings = self.config.get_settings()
         _host = '127.0.0.1'
         _port = 5000
@@ -139,15 +306,18 @@ class Baka(object):
         run_simple(host, port, self.config.make_wsgi_app(), **options)
 
     def wsgi_app(self, env, response):
+        """ wsgi application instance
+        :param env: environ wsgi
+        :param response: response wsgi
+        :return: wsgi middleware
+        """
+
         app = self.config.make_wsgi_app()
         return app(env, response)
 
     def __call__(self, env, response):
         """Shortcut for :attr:`wsgi_app`."""
         return self.wsgi_app(env, response)
-
-    def cetak(self):
-        log.info('cetak')
 
 
 """Adaption of tomb_routes.
@@ -159,7 +329,7 @@ def add_simple_route(
         config, target,
         append_slash=False, **kwargs):
     """Configuration directive that can be used to register a simple route to
-    a view.
+    a view. Connects a URL rule.  Works exactly like the :meth:`route`decorator
 
     Examples:
 
@@ -185,6 +355,7 @@ def add_simple_route(
     log.debug(kwargs.get('route_name', 'route_name'))
     # TODO: modified untuk case url sama beda method request
     kwargs['request_method'] = kwargs.get('request_method', 'GET')
+    kwargs['renderer'] = kwargs.get('renderer', 'json')  # default render json format
 
     # route_method = kwargs.get("request_method", 'GET')
     # route_method = '__'.join([target.__name__, route_method])
