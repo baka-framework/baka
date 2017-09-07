@@ -8,7 +8,7 @@
     :license: BSD, see LICENSE for more details.
 """
 
-__version__ = '0.1.dev9'
+__version__ = '0.1.dev11'
 
 from .app import Baka
 from .log import log
