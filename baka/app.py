@@ -373,6 +373,11 @@ def add_simple_route(
         val = kwargs.pop('accept')
         route_kwargs['accept'] = val
 
+    # For Resource Context Factory
+    if 'factory' in kwargs:
+        val = kwargs.pop('factory')
+        route_kwargs['factory'] = val
+
     # Make it possible to custom_predicates = in the simple_route
     custom_predicates = kwargs.pop('custom_predicates', None)
     if custom_predicates:

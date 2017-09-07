@@ -135,5 +135,6 @@ com_crashlytics_export_strings.xml
 crashlytics.properties
 crashlytics-build.properties
 fabric.properties
-/testbaka/
+/testbaka/*
 /test_run.py
+/test_asyncio.py
