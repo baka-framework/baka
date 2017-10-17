@@ -138,3 +138,6 @@ fabric.properties
 /testbaka/*
 /test_run.py
 /test_asyncio.py
+
+# custom
+*.DS_Store
