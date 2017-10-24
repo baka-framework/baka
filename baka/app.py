@@ -12,13 +12,19 @@ import logging.config
 import os
 import sys
 
-from pyramid.config import Configurator, ConfigurationError
-from pyramid.interfaces import IViewMapperFactory
-from pyramid.path import DottedNameResolver
-from .settings import SettingError
-from .log import log, logging_format
 import venusian
+from pyramid.config import Configurator, ConfigurationError
+from pyramid.httpexceptions import WSGIHTTPException
+from pyramid.interfaces import IViewMapperFactory, IExceptionResponse
+from pyramid.path import DottedNameResolver
+from pyramid.security import NO_PERMISSION_REQUIRED
+from pyramid.settings import asbool
 from zope.interface import Interface, Attribute, implementer
+
+from .config import config_yaml, merge_yaml, trafaret_yaml
+from .log import log, logging_format
+from .resources import METHODS, ViewDecorator, default_options_view, unsupported_method_view
+from .settings import SettingError
 
 
 class Baka(object):
@@ -29,10 +35,9 @@ class Baka(object):
         :param settings: *optional dict settings for pyramid configuration
         """
         self.import_name = pathname
-        self.config = self.configure(settings)
-        self.config.add_directive('add_ext', self.add_ext_config)
-        self.config.include(__name__)
-        self.registry = _BakaExtensions
+        self.settings = settings
+        self.__include = {}
+        self.__trafaret = trafaret_yaml
 
         # Only set up a default log handler if the
         # end-user application didn't set anything up.
@@ -42,6 +47,9 @@ class Baka(object):
             handler.setFormatter(formatter)
             log.addHandler(handler)
             log.setLevel(logging.INFO)
+
+    def config_schema(self, config):
+        self.__trafaret = self.__trafaret.merge(config)
 
     @property
     def name(self):
@@ -128,9 +136,37 @@ class Baka(object):
                 level = logging.DEBUG
             logging.getLogger('sqlalchemy.engine').setLevel(level)
 
+        # set from config file
+        config_yaml(self.import_name, _yaml=self.__trafaret)
         return Configurator(settings=settings)
 
-    def route(self, path, **options):
+    def resource(self, path, **kwargs):
+
+        def decorator(wrapped, depth=1):
+            route_name = kwargs.pop("route_name", None)
+            route_name = route_name or wrapped.__name__
+            route_name = kwargs.pop("name", route_name)
+            wrapped.route_name = route_name
+
+
+            def callback(scanner, name, cls):
+                config = scanner.config.with_package(info.module)
+                config.add_route(route_name, path, factory=cls)
+                config.add_view(default_options_view, route_name=route_name,
+                                request_method='OPTIONS', permission=NO_PERMISSION_REQUIRED)
+                config.add_view(unsupported_method_view, route_name=route_name, renderer='json')
+
+            for method in METHODS:
+                setattr(wrapped, method, type('ViewDecorator%s' % method,
+                                              (ViewDecorator, object),
+                                              {'request_method': method,
+                                               'state': wrapped}))
+            info = venusian.attach(wrapped, callback, 'pyramid', depth=depth)
+            return wrapped
+
+        return decorator
+
+    def route(self, path, **kwargs):
         """A decorator that is used to register a view function for a
         given URL rule.  This does the same thing as :meth:`add_simple_route`
         but is intended for decorator usage::
@@ -155,7 +191,7 @@ class Baka(object):
 
         :param rule: the URL rule as string
         :param renderer: (default: json) the format templates for render in response view
-        :param options: supports the following keyword arguments:
+        :param kwargs: supports the following keyword arguments:
                         ``context``, ``exception``, ``permission``, ``name``,
                         ``request_type``, ``route_name``, ``request_method``, ``request_param``,
                         ``containment``, ``xhr``, ``accept``, ``header``, ``path_info``,
@@ -163,24 +199,24 @@ class Baka(object):
                         ``require_csrf``, ``match_param``, ``check_csrf``, ``physical_path``, and
                         ``view_options``.
         """
-        options['path'] = path
+        kwargs['path'] = path
 
         def decorator(wrapped):
             """Attach the decorator with Venusian"""
 
-            log.debug(options.get('request_method', 'GET'))
-            log.debug(options.get('route_name', 'route_name'))
+            log.debug(kwargs.get('request_method', 'GET'))
+            log.debug(kwargs.get('route_name', 'route_name'))
 
             def callback(scanner, _name, wrapped):
                 """Register a view; called on config.scan"""
                 config = scanner.config.with_package(info.module)
 
                 # Default to not appending slash
-                if not "append_slash" in options:
+                if not "append_slash" in kwargs:
                     append_slash = False
 
                 # pylint: disable=W0142
-                add_simple_route(config, wrapped, **options)
+                add_simple_route(config, wrapped, **kwargs)
 
             info = venusian.attach(wrapped, callback)
 
@@ -188,8 +224,8 @@ class Baka(object):
                 # if the decorator was attached to a method in a class, or
                 # otherwise executed at class scope, we need to set an
                 # 'attr' into the settings if one isn't already in there
-                if options.get('attr') is None:
-                    options['attr'] = wrapped.__name__
+                if kwargs.get('attr') is None:
+                    kwargs['attr'] = wrapped.__name__
 
             return wrapped
 
@@ -274,9 +310,21 @@ class Baka(object):
                 raise ConfigurationError(
                     'No source file for module %r (.py file must exist, '
                     'refusing to use orphan .pyc or .pyo file).' % _callable)
+            self.__include[_callable.__name__] = _callable
+
+    def _configure(self):
+        self.config = self.configure(self.settings)
+        self.config.add_directive('add_ext', self.add_ext_config)
+        self.config.include(__name__)
+        self.registry = _BakaExtensions
+
+        # pull list include modules
+        for _callable in self.__include:
             self.config.include(_callable)
 
+
     def scan(self, path=None):
+        self._configure()
         """ Venusian scanner config
         :param path:
         """
@@ -318,6 +366,10 @@ class Baka(object):
     def __call__(self, env, response):
         """Shortcut for :attr:`wsgi_app`."""
         return self.wsgi_app(env, response)
+
+    @classmethod
+    def add_config(cls, cfg):
+        cls.trafaret = merge_yaml(cls, cfg)
 
 
 """Adaption of tomb_routes.
@@ -445,6 +497,22 @@ def add_simple_route(
 
 def includeme(config):
     config.add_directive('add_simple_route', add_simple_route)
+    config.include('baka.renderers')
+    settings = config.registry.settings
+    settings['baka.debug'] = \
+        settings.get('debug_all') or \
+        settings.get('pyramid.debug_all') or \
+        settings.get('rest_toolkit.debug') or \
+        asbool(os.environ.get('PYRAMID_DEBUG_ALL')) or \
+        asbool(os.environ.get('BAKA_DEBUG'))
+    if not settings['baka.debug']:
+        config.add_view('baka.error.generic',
+                        context=Exception, renderer='json',
+                        permission=NO_PERMISSION_REQUIRED)
+    config.add_view('baka.error.http_error', context=IExceptionResponse, renderer='json')
+    config.add_view('baka.error.http_error', context=WSGIHTTPException, renderer='json')
+    config.add_notfound_view('baka.error.notfound', renderer='json')
+    config.add_forbidden_view('baka.error.forbidden', renderer='json')
 
 
 class IBakaExtensions(Interface):
