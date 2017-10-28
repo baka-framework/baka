@@ -26,7 +26,9 @@ CLASSIFIERS = [
 INSTALL_REQUIRES = [
     'setuptools>=27',
     'pyramid>=1.9',
-    'werkzeug>=0.12'
+    'werkzeug>=0.12',
+    'bson',
+    'trafaret_config>=1.0.1'
 ]
 EXTRAS_REQUIRE = {
     'dev': ['check-manifest'],

@@ -4,6 +4,13 @@ from trafaret_config import parse_and_validate, ConfigError
 
 trafaret_yaml = T.Dict({
     T.Key('package'): T.String(),
+    T.Key('baka'): T.Dict({
+        T.Key('debug_all', default=False): T.Bool(),
+        T.Key('meta', optional=True): T.Dict({
+            T.Key('version', optional=True): T.String(),
+            T.Key('app', optional=True): T.String(),
+        })
+    }),
 })
 
 

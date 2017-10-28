@@ -1,14 +1,12 @@
 import enum
+import json
 from datetime import datetime, date
 from decimal import Decimal
-import json
-import logging
 
 import bson
 from bson.objectid import ObjectId
 
-
-log = logging.getLogger(__name__)
+from .response import JSONAPIResponse
 
 
 class EnumInt(object):
@@ -63,7 +61,7 @@ class Factory(object):
     formatters = {
         'application/json': json_dumps,
         'application/bson': bson_dumps,
-        }
+    }
 
     def __init__(self, info):
         """ Constructor: info will be an oect having the
@@ -82,11 +80,22 @@ class Factory(object):
         dictionary containing available system values
         # (e.g. view, context, and request). """
         request = system['request']
-        format = request.accept.best_match([
-            'application/json',
-            'application/bson',
+        with JSONAPIResponse(request.response) as resp:
+            _in = u'Failed'
+            code, status = JSONAPIResponse.OK
+            settings = self.info.settings
+
+            format = request.accept.best_match([
+                'application/json',
+                'application/bson',
             ])
-        request.response.content_type = format
+            request.response.content_type = format
+            if settings.get('baka')['meta']:
+                meta = {'meta': settings['baka'].get('meta', {})}
+        value = resp.to_json(
+            _in, code=code,
+            status=status, message=value, **meta)
+
         return self.formatters[format](value)
 
 
