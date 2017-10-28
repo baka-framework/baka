@@ -27,3 +27,6 @@ def _self_package(package):
     # Go up one level to get package
     package_name = module.__name__.rsplit('.', 1)[0]
     return sys.modules[package_name]
+
+
+

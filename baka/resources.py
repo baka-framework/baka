@@ -1,5 +1,6 @@
 import venusian
 from pyramid.httpexceptions import HTTPNoContent
+from zope.interface import implementer, Interface, Attribute
 
 METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
 
@@ -61,5 +62,18 @@ def default_options_view(resource, request, methods=None):
     response.headers['Access-Control-Allow-Methods'] = ', '.join(methods)
     return response
 
-def includeme(config):
-    pass
+
+class IBakaExtensions(Interface):
+    """ Marker interface for storing baka extensions (properties and
+    methods) which will be added to the baka object."""
+    descriptors = Attribute(
+        """A list of descriptors that will be added to each baka singleton.""")
+    methods = Attribute(
+        """A list of methods to be added to baka singleton.""")
+
+
+@implementer(IBakaExtensions)
+class _BakaExtensions(object):
+    def __init__(self):
+        self.descriptors = {}
+        self.methods = {}
