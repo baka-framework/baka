@@ -37,6 +37,7 @@ class ViewDecorator(BaseDecorator):
 
     def __init__(self, **kw):
         self.view_arguments = self.default_arguments.copy()
+        self.view_arguments.update(self.kwargs)
         self.view_arguments.update(kw)
 
     def callback(self, scanner, name, view):
