@@ -156,7 +156,8 @@ class Baka(object):
                 setattr(wrapped, method, type('ViewDecorator%s' % method,
                                               (ViewDecorator, object),
                                               {'request_method': method,
-                                               'state': wrapped}))
+                                               'state': wrapped,
+                                               'kwargs': kwargs}))
             info = venusian.attach(wrapped, callback, 'pyramid', depth=depth)
             return wrapped
 
