@@ -17,10 +17,10 @@ from pyramid.config import Configurator, ConfigurationError
 from pyramid.path import DottedNameResolver
 from pyramid.security import NO_PERMISSION_REQUIRED
 
-from baka.routes import add_simple_route
 from .config import config_yaml, merge_yaml, trafaret_yaml
 from .log import log, logging_format
 from .resources import METHODS, ViewDecorator, default_options_view, unsupported_method_view, _BakaExtensions
+from .routes import add_simple_route
 from .settings import SettingError
 
 

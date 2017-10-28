@@ -6,7 +6,7 @@ from pyramid.path import DottedNameResolver
 from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.settings import asbool
 
-from baka.log import log
+from .log import log
 
 
 def add_simple_route(

@@ -1,49 +1,82 @@
 import traceback
+
 import webob
 from pyramid.httpexceptions import HTTPNotFound
 
+from .response import JSONAPIResponse
+
 
 def generic(context, request):
-    request.response.status_int = 500
-    try:
-        response = {'message': context.args[0]}
-    except IndexError:
-        response = {'message': 'Unknown error'}
-    if request.registry.settings['baka'].get('debug'):
-        response['traceback'] = ''.join(
+    settings = request.registry.settings
+    with JSONAPIResponse(request.response) as resp:
+        _in = u'Failed'
+        code, status = JSONAPIResponse.INTERNAL_SERVER_ERROR
+        request.response.status_int = code
+        try:
+            message = {'message': context.args[0]}
+        except IndexError:
+            message = {'message': 'Unknown error'}
+        if settings.get('baka.debug', True):
+            message['traceback'] = ''.join(
                 traceback.format_exception(*request.exc_info))
-    return response
+    return resp.to_json(
+        _in, code=code,
+        status=status, message=message)
 
 
 def http_error(context, request):
-    if isinstance(context, webob.Response) and context.content_type == 'application/json':
-        return context
-    request.response.status = context.status
-    for (header, value) in context.headers.items():
-        if header in {'Content-Type', 'Content-Length'}:
-            continue
-        request.response.headers[header] = value
-    if context.message:
-        return {'message': context.message}
-    else:
-        return {'message': context.status}
+    with JSONAPIResponse(request.response) as resp:
+        _in = u'Failed'
+        code, status = JSONAPIResponse.BAD_REQUEST
+        if isinstance(context, webob.Response) \
+                and context.content_type == 'application/json':
+            return context
+
+        request.response.status = context.status
+        status = context.status
+        for (header, value) in context.headers.items():
+            if header in {'Content-Type', 'Content-Length'}:
+                continue
+            request.response.headers[header] = value
+        if context.message:
+            message =  {'message': context.message}
+        else:
+            message = {'message': context.status}
+
+    return resp.to_json(
+        _in, code=code,
+        status=status, message=message)
 
 
 def notfound(context, request):
-    message = 'Resource not found'
-    if isinstance(context, HTTPNotFound):
-        if context.content_type == 'application/json':
-            return context
-        elif context.detail:
-            message = context.detail
-    request.response.status_int = 404
-    return {'message': message}
+    with JSONAPIResponse(request.response) as resp:
+        _in = u'Failed'
+        code, status = JSONAPIResponse.NOT_FOUND
+        request.response.status_int = code
+        message = 'Resource not found'
+        if isinstance(context, HTTPNotFound):
+            if context.content_type == 'application/json':
+                return context
+            elif context.detail:
+                message = context.detail
+
+    return resp.to_json(
+        _in, code=code,
+        status=status, message=message)
 
 
 def forbidden(request):
-    if request.unauthenticated_userid:
-        request.response.status_int = 403
-        return {'message': 'You are not allowed to perform this action.'}
-    else:
-        request.response.status_int = 401
-        return {'message': 'You must login to perform this action.'}
+    with JSONAPIResponse(request.response) as resp:
+        _in = u'Failed'
+        if request.unauthenticated_userid:
+            code, status = JSONAPIResponse.FORBIDDEN
+            request.response.status_int = code
+            message = {'message': 'You are not allowed to perform this action.'}
+        else:
+            code, status = JSONAPIResponse.NOT_AUTHORIZED
+            request.response.status_int = code
+            message = {'message': 'You must login to perform this action.'}
+
+    return resp.to_json(
+        _in, code=code,
+        status=status, message=message)
