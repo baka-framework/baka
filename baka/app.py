@@ -96,7 +96,7 @@ class Baka(object):
         :param name: the name of directive
         :param directive: the callback function directive
         """
-        if name in vars(name).keys():
+        if name in vars(self).keys():
             raise AttributeError(name)
 
         c = DottedNameResolver().maybe_resolve(directive)
