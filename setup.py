@@ -28,7 +28,7 @@ INSTALL_REQUIRES = [
     'pyramid>=1.9',
     'werkzeug>=0.12',
     'bson',
-    'trafaret>=0.12.1.dev0'
+    'trafaret>=0.12.1.dev0',
     'trafaret_config>=1.0.1'
 ]
 EXTRAS_REQUIRE = {
