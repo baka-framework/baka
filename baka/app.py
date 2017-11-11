@@ -66,21 +66,22 @@ class Baka(object):
         package_name = module.__name__.rsplit('.', 1)[0]
         return sys.modules[package_name]
 
-    def __getattr__(self, name):
-        """ built-in method for get attribute baka object
-        :param name: selector
-        :return:
-        """
-        # allow directive extension names to work
-        directives = getattr(self.registry, '_directives', {})
-        c = directives.get(name)
-        if c is None:
-            raise AttributeError(name)
-
-        # Create a bound method (works on both Py2 and Py3)
-        # http://stackoverflow.com/a/1015405/209039
-        m = c.__get__(self, self.__class__)
-        return m
+    # recurssion error for getting attribute name
+    # def __getattr__(self, name):
+    #     """ built-in method for get attribute baka object
+    #     :param name: selector
+    #     :return:
+    #     """
+    #     # allow directive extension names to work
+    #     directives = getattr(self.registry, '_directives', {})
+    #     c = directives.get(name)
+    #     if c is None:
+    #         raise AttributeError(name)
+    #
+    #     # Create a bound method (works on both Py2 and Py3)
+    #     # http://stackoverflow.com/a/1015405/209039
+    #     m = c.__get__(self, self.__class__)
+    #     return m
 
     def add_ext_config(self, config, name, directive):
         """ This does the same thing as :meth:`add_ext` but using for pyramid configuration
@@ -95,10 +96,12 @@ class Baka(object):
         :param name: the name of directive
         :param directive: the callback function directive
         """
+        if name in vars(name).keys():
+            raise AttributeError(name)
+
         c = DottedNameResolver().maybe_resolve(directive)
-        if not hasattr(self.registry, '_directives'):
-            self.registry._directives = {}
-        self.registry._directives[name] = c
+        setattr(self, name, c)
+
 
     def configure(self, settings):
         """ This initial settings of pyramid Configurator
