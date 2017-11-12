@@ -99,7 +99,7 @@ App Folder
 
 For App Structure Folder
 
-.. code::
+.. code:: html
 
     - root
         - package (AppBaka)
@@ -110,7 +110,7 @@ For App Structure Folder
         - run.py # running development server
 
 
-Default Configuration Baka from config.yaml
+Default Configuration Baka from ``config.yaml``
 
 .. code:: yaml
 
@@ -122,7 +122,7 @@ Default Configuration Baka from config.yaml
             version: 0.1.0 # mandatory for json response version
 
 
-WSGI Container Application Server wsgi.py
+WSGI Container Application Server ``wsgi.py``
 
 .. code:: python
 
@@ -142,9 +142,9 @@ WSGI Container Application Server wsgi.py
     application = app
 
 
-Running in Development mode run.py
+Running in Development mode ``run.py``
 
-.. code::
+.. code:: python
 
     # -*- coding: utf-8 -*-
     """
