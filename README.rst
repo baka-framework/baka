@@ -109,6 +109,7 @@ App Folder
 
 ``config.yaml``
 
+
 .. code:: yaml
     package: AppBaka # mandatory for root package
     version: 0.1.0 # optional
@@ -119,6 +120,7 @@ App Folder
 
 
 ``wsgi.py``
+
 
 .. code:: python
     # -*- coding: utf-8 -*-
@@ -139,7 +141,8 @@ App Folder
 
 ``run.py``
 
-.. code-block::
+
+.. code::
     # -*- coding: utf-8 -*-
     """
 
