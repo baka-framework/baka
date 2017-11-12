@@ -100,6 +100,7 @@ App Folder
 For App Structure Folder
 
 .. code::
+
     - root
         - package (AppBaka)
             - config
@@ -112,6 +113,7 @@ For App Structure Folder
 Default Configuration Baka from config.yaml
 
 .. code:: yaml
+
     package: AppBaka # mandatory for root package
     version: 0.1.0 # optional
     baka:
@@ -123,6 +125,7 @@ Default Configuration Baka from config.yaml
 WSGI Container Application Server wsgi.py
 
 .. code:: python
+
     # -*- coding: utf-8 -*-
     """
         WSGI Application Server
@@ -142,6 +145,7 @@ WSGI Container Application Server wsgi.py
 Running in Development mode run.py
 
 .. code::
+
     # -*- coding: utf-8 -*-
     """
 
