@@ -187,6 +187,24 @@ Production mode with Gunicorn
     gunicorn -w 1 -b 0.0.0.0:5000 AppBaka.wsgi
 
 
+Examples
+--------
+
+.. code::
+
+    git clone https://github.com/baka-framework/baka.git
+
+    cd examples
+
+    python3 -m venv env
+
+    source env/bin/active
+
+    pip install baka
+
+    python run.py
+
+
 Saran dan Kontribusi
 --------------------
 
