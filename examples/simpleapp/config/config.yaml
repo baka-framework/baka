@@ -1,0 +1,6 @@
+package: simpleapp
+baka:
+  debug_all: True
+  meta:
+    app: Test Baka
+    version: '1.0'
