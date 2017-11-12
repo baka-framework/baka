@@ -11,12 +11,16 @@ You can use these as base classes for declarative model definitions, e.g.
 
 .. code:: python
 
-    from baka import Baka, log
+    from baka import Baka
+    from baka.log import log
 
+    options = {
+        'LOGGING': True,
+        'secret_key': 'kuncirahasia'
+    }
+    app = Baka(__name__, **options)
 
-    app = Baka(__name__)
-
-
+    # route method
     @app.route('/')
     def index_page(req):
         log.info(req)
@@ -28,10 +32,23 @@ You can use these as base classes for declarative model definitions, e.g.
         log.info(req)
         return {'Route': 'home'}
 
+
+    # root resources routes
+    class ResourcesPage(object):
+        def __init__(self, request):
+            self._name = 'Resource Page'
+            log.info(request.params)
+
+
+    # GET resource method
+    @ResourcesPage.GET()
+    def resources_page_get(root, request):
+        return {
+            'hello': 'Get Hello resources from Page root %s ' % page._name
+        }
+
     app.scan()
 
-    if __name__ == '__main__':
-        app.run()
 
 
 Include Module
@@ -41,7 +58,8 @@ using baka include, you can mixing separate module in any different file and mod
 
 .. code:: python
 
-    ``in other file testbaka/view_user.py``
+    in other file: testbaka/view_user.py
+    ---
     from .app import app
 
 
@@ -52,11 +70,14 @@ using baka include, you can mixing separate module in any different file and mod
     def includeme(config):
         config.scan()
 
-    ``file testbaka/app.py``
-    from baka import Baka, log
+    file: testbaka/app.py
+    ---
+    from baka import Baka
+    from baka.log import log
 
 
     app = Baka(__name__)
+    # include from file view_user.py
     app.include('testbaka.view_user')
 
     @app.route('/')
@@ -72,8 +93,67 @@ using baka include, you can mixing separate module in any different file and mod
 
     app.scan()
 
-    if __name__ == '__main__':
-        app.run()
+
+App Folder
+---------
+
+.. code:: html
+    - root
+        - package (AppBaka)
+            - config
+                - config.yaml # use for baka default configuration
+            - __init__.py # the code goes in here
+            - wsgi.py # for running in wsgi container e.g gunicorn
+        - run.py # running development server
+
+
+``config.yaml``
+
+.. code:: yaml
+    package: AppBaka # mandatory for root package
+    version: 0.1.0 # optional
+    baka:
+        debug_all: True # mandatory for debug environment
+        meta:
+            version: 0.1.0 # mandatory for json response version
+
+
+``wsgi.py``
+
+.. code:: python
+    # -*- coding: utf-8 -*-
+    """
+        WSGI Application Server
+        ~~~~~~~~~
+
+        :author: nanang.jobs@gmail.com
+        :copyright: (c) 2017 by Nanang Suryadi.
+        :license: BSD, see LICENSE for more details.
+
+        wsgi.py
+    """
+    from . import app
+
+    application = app
+
+
+``run.py``
+
+.. code-block::
+    # -*- coding: utf-8 -*-
+    """
+
+        ~~~~~~~~~
+
+        :author: nanang.jobs@gmail.com
+        :copyright: (c) 2017 by Nanang Suryadi.
+        :license: BSD, see LICENSE for more details.
+
+        run.py.py
+    """
+    from . import app
+
+    app.run(use_reloader=True)
 
 
 Install
