@@ -1,13 +1,13 @@
 Baka Framework
 ==============
 
-`Baka Framework <https://github.com/baka-framework/baka>`_. is Baka Framework is web application framework based on Pyramid.
+`Baka Framework <https://github.com/baka-framework/baka>`_ is web application framework based on Pyramid.
 
 
 Usage
 -----
 
-You can use these as base classes for declarative model definitions, e.g.
+You can use these framework as simple as route method-like, e.g.
 
 .. code:: python
 
@@ -168,6 +168,23 @@ Install
 .. code:: python
 
     pip install baka
+
+
+Running
+-------
+
+Development mode
+
+.. code::
+
+    python run.py
+
+
+Production mode with Gunicorn
+
+.. code::
+
+    gunicorn -w 1 -b 0.0.0.0:5000 AppBaka.wsgi
 
 
 Saran dan Kontribusi
