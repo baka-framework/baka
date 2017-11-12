@@ -97,6 +97,7 @@ using baka include, you can mixing separate module in any different file and mod
 App Folder
 ---------
 
+For App Structure Folder
 
 .. code::
     - root
@@ -111,6 +112,8 @@ App Folder
 ``config.yaml``
 
 
+Default Configuration Baka from yaml
+
 .. code:: yaml
     package: AppBaka # mandatory for root package
     version: 0.1.0 # optional
@@ -122,6 +125,8 @@ App Folder
 
 ``wsgi.py``
 
+
+WSGI Container Application Server
 
 .. code:: python
     # -*- coding: utf-8 -*-
@@ -142,6 +147,8 @@ App Folder
 
 ``run.py``
 
+
+Running in Development mode
 
 .. code::
     # -*- coding: utf-8 -*-
