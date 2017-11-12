@@ -59,7 +59,7 @@ using baka include, you can mixing separate module in any different file and mod
 .. code:: python
 
     in other file: testbaka/view_user.py
-    ---
+
     from .app import app
 
 
@@ -71,7 +71,7 @@ using baka include, you can mixing separate module in any different file and mod
         config.scan()
 
     file: testbaka/app.py
-    ---
+
     from baka import Baka
     from baka.log import log
 
@@ -97,7 +97,8 @@ using baka include, you can mixing separate module in any different file and mod
 App Folder
 ---------
 
-.. code:: html
+
+.. code::
     - root
         - package (AppBaka)
             - config
