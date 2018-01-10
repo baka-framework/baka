@@ -135,11 +135,11 @@ def includeme(config):
         settings.get('pyramid.debug_all') or \
         asbool(os.environ.get('PYRAMID_DEBUG_ALL')) or \
         asbool(os.environ.get('BAKA_DEBUG'))
-    if not settings['baka.debug']:
-        config.add_view('baka.error.generic',
-                        context=Exception, renderer='json',
-                        permission=NO_PERMISSION_REQUIRED)
-    config.add_view('baka.error.http_error', context=IExceptionResponse, renderer='json')
-    config.add_view('baka.error.http_error', context=WSGIHTTPException, renderer='json')
+    # if not settings['baka.debug']:
+    #     config.add_view('baka.error.generic',
+    #                     context=Exception, renderer='json',
+    #                     permission=NO_PERMISSION_REQUIRED)
+    # config.add_view('baka.error.http_error', context=IExceptionResponse, renderer='json')
+    # config.add_view('baka.error.http_error', context=WSGIHTTPException, renderer='json')
     config.add_notfound_view('baka.error.notfound', renderer='json')
     config.add_forbidden_view('baka.error.forbidden', renderer='json')
