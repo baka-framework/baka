@@ -40,8 +40,6 @@ class Baka(object):
         self.config = self.configure(settings)
         self.config.begin()
         self.config.add_view(AppendSlashNotFoundViewFactory(), context=NotFound)
-        self.config.add_view(self.exc_handler,
-                             context=httpexceptions.WSGIHTTPException)
         self.config.add_directive('add_ext', self.add_ext_config)
         self.config.include(__name__)
         self.config.commit()
@@ -124,7 +122,6 @@ class Baka(object):
 
         c = DottedNameResolver().maybe_resolve(directive)
         setattr(self, name, c)
-
 
     def configure(self, settings):
         """ This initial settings of pyramid Configurator
@@ -285,21 +282,35 @@ class Baka(object):
         app = self.config.make_wsgi_app()
         return app(env, response)
 
-    def error_handler(self, code):
+    def redirect(self, url):
+        raise httpexceptions.HTTPFound(location=url)
+
+    def listen(self, event_type=None):
         def decorator(func):
-            def err_func(exc, request):
-                request.response.status = exc.status
-                return func(exc)
+            self.config.add_subscriber(func, event_type)
 
-            exc = httpexceptions.status_map.get(code)
+        return decorator
 
+    def notify(self, event):
+        self.config.registry.notify(event)
+
+    def error_handler(self, code, **settings):
+        def decorator(wrapped):
+            settings['renderer'] = settings.get('renderer', 'json')
+            settings['permission'] = settings.get('permission,', NO_PERMISSION_REQUIRED)
+
+            target = DottedNameResolver().maybe_resolve(wrapped)
+            def err_func(context, request):
+                if not isinstance(context, Exception):
+                    context = request.exception or context
+                request.response.status = context.status
+                return target(context, request)
+
+            exc = type(httpexceptions.exception_response(code))
             if exc is not None:
-                view = err_func
-                if exc is NotFound:
-                    view = AppendSlashNotFoundViewFactory(err_func)
-                self.config.add_view(view, context=exc)
+                self.config.add_view(err_func, context=exc, **settings)
 
-            return func
+            return wrapped
 
         return decorator
 

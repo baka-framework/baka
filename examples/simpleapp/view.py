@@ -33,4 +33,4 @@ def view_post(root, request):
 
 
 def includeme(config):
-    config.scan(__name__)
+    pass

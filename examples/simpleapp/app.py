@@ -17,11 +17,6 @@ def index_home(req):
     return {'index_home': 'Baka Framework'}
 
 
-@app.error_handler(404)
-def err_handler_404(exc):
-    return {'error': 'not found'}
-
-
 @app.resource('/event', renderer='restful')
 class EventPage(object):
     def __init__(self, request):
@@ -45,5 +40,11 @@ def event_post(root, request):
     return {
         'post': 'event post post'
     }
+
+
+@app.error_handler(404, renderer='restful')
+def error_page_notfound(context, request):
+    return {'found': 'clearing context'}
+
 
 app.include('simpleapp.view')
