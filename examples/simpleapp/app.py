@@ -6,7 +6,7 @@ app = Baka(__name__)
 
 
 @app.route('/')
-def home_page(req):
+def home_index(req):
     log.info('/')
     return {'home_page': 'Hello World'}
 
