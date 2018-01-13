@@ -12,15 +12,15 @@ import logging.config
 import os
 import sys
 
-import venusian
 from pyramid import httpexceptions
-from pyramid.config import Configurator, ConfigurationError
+from pyramid.config import Configurator
 from pyramid.exceptions import NotFound
 from pyramid.path import DottedNameResolver
 from pyramid.security import NO_PERMISSION_REQUIRED
+from pyramid.session import UnencryptedCookieSessionFactoryConfig
 from pyramid.view import AppendSlashNotFoundViewFactory
 
-from .config import config_yaml, merge_yaml, trafaret_yaml
+from .config import config_yaml, trafaret_yaml
 from .log import log, logging_format
 from .resources import METHODS, ViewDecorator, default_options_view, unsupported_method_view, _BakaExtensions
 from .routes import add_simple_route
@@ -28,7 +28,9 @@ from .settings import SettingError
 
 
 class Baka(object):
-    def __init__(self, package, **settings):
+    def __init__(self, package, session_key=None,
+                 authn_policy=None, authz_policy=None,
+                 config_schema=False, **settings):
         """initial config for singleton baka framework
 
         :param import_name: the name of the application package
@@ -36,7 +38,14 @@ class Baka(object):
         """
         self.package = package
         self.__trafaret = trafaret_yaml
+        self.config_schema = config_schema
 
+        session_factory = UnencryptedCookieSessionFactoryConfig(session_key)
+        settings.update({
+            'session_factory': session_factory,
+            'authentication_policy': authn_policy,
+            'authorization_policy': authz_policy
+        })
         self.config = self.configure(settings)
         self.config.begin()
         self.config.add_view(AppendSlashNotFoundViewFactory(), context=NotFound)
@@ -157,8 +166,10 @@ class Baka(object):
             logging.getLogger('sqlalchemy.engine').setLevel(level)
 
         # set from config file
-        settings.update(
-            config_yaml(self.package, _yaml=self.__trafaret))
+        if self.config_schema:
+            settings.update(
+                config_yaml(self.package, _yaml=self.__trafaret))
+
         return Configurator(settings=settings)
 
     def resource(self, path, **kwargs):

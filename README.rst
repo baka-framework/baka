@@ -1,24 +1,22 @@
 Baka Framework
 ==============
 
-`Baka Framework <https://github.com/baka-framework/baka>`_ is web application framework based on Pyramid.
+`Baka Framework`_ adalah web application framework yang menggunakan core
+wsgi dari Pyramid.
 
+Penggunaan
+----------
 
-Usage
------
-
-You can use these framework as simple as route method-like, e.g.
+Kamu dapat menggunakan baka framework dengan sangat sederhana seperti
+``route handler function``, misalnya.
 
 .. code:: python
+
 
     from baka import Baka
     from baka.log import log
 
-    options = {
-        'LOGGING': True,
-        'secret_key': 'kuncirahasia'
-    }
-    app = Baka(__name__, **options)
+    app = Baka(__name__)
 
     # route method
     @app.route('/')
@@ -47,18 +45,16 @@ You can use these framework as simple as route method-like, e.g.
             'hello': 'Get Hello resources from Page root %s ' % page._name
         }
 
-    app.scan()
+Modular Package/Folder
+----------------------
 
+Dengan penggunakan ``baka.include(callable)``, kamu dapat menggabungkan
+module terpisah dari beberapa file didalam *package module*.
 
-
-Include Module
---------------
-
-using baka include, you can mixing separate module in any different file and module package.
+``contoh file: testbaka/view_user.py``
 
 .. code:: python
 
-    in other file: testbaka/view_user.py
 
     from .app import app
 
@@ -68,17 +64,20 @@ using baka include, you can mixing separate module in any different file and mod
         return {'users': 'all data'}
 
     def includeme(config):
-        config.scan()
+        pass
 
-    file: testbaka/app.py
+``file: testbaka/app.py``
+
+.. code:: python
+
 
     from baka import Baka
     from baka.log import log
 
 
     app = Baka(__name__)
-    # include from file view_user.py
-    app.include('testbaka.view_user')
+    app.include('testbaka.view_user') # include module dari file view_user.py
+
 
     @app.route('/')
     def index_page(req):
@@ -91,20 +90,18 @@ using baka include, you can mixing separate module in any different file and mod
         log.info(req)
         return {'Route': 'home'}
 
-    app.scan()
-
 
 App Folder
 ---------
 
-For App Structure Folder
+Untuk Struktur Application Folder ``optional``
 
 .. code:: html
 
     - root
         - package (AppBaka)
-            - config
-                - config.yaml # use for baka default configuration
+            - config ``optional, Baka(__name__, config_schema=True)``
+                - config.yaml # digunakan for baka default configuration
             - __init__.py # the code goes in here
             - wsgi.py # for running in wsgi container e.g gunicorn
         - run.py # running development server
@@ -187,8 +184,8 @@ Production mode with Gunicorn
     gunicorn -w 1 -b 0.0.0.0:5000 AppBaka.wsgi
 
 
-Examples
---------
+Contoh Aplikasi
+---------------
 
 .. code::
 

@@ -1,4 +1,3 @@
-import venusian
 from pyramid.httpexceptions import HTTPNoContent
 from pyramid.path import DottedNameResolver
 from zope.interface import implementer, Interface, Attribute

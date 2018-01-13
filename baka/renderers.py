@@ -5,9 +5,9 @@ from datetime import datetime, date
 from decimal import Decimal
 
 import bson
-from baka._compat import text_type
 from bson.objectid import ObjectId
 
+from baka._compat import text_type
 from .response import JSONAPIResponse
 
 

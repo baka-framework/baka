@@ -1,9 +1,7 @@
 import os
 
-from pyramid.httpexceptions import WSGIHTTPException
-from pyramid.interfaces import IViewMapperFactory, IExceptionResponse
+from pyramid.interfaces import IViewMapperFactory
 from pyramid.path import DottedNameResolver
-from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.settings import asbool
 
 from .log import log
