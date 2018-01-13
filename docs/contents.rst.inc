@@ -1,9 +1,8 @@
 Petunjuk Penggunaan
 -------------------
 
-This part of the documentation, which is mostly prose, begins with some
-background information about Baka, then focuses on step-by-step
-instructions for web development with Baka.
+Document bagian ini yang penting dari semua bagian untuk memulai,
+usahakan mengikuti langkah-langkah satu per satu instruksi dari development web dengan Baka framework.
 
 .. toctree::
    :maxdepth: 2
