@@ -1,11 +1,13 @@
 import enum
 import json
+import uuid
 from datetime import datetime, date
 from decimal import Decimal
 
 import bson
 from bson.objectid import ObjectId
 
+from baka._compat import text_type
 from .response import JSONAPIResponse
 
 
@@ -120,8 +122,11 @@ class JSONEncoder(json.JSONEncoder):
         if isinstance(o, Decimal):
             return _number_str(o)
 
+        if isinstance(o, uuid.UUID):
+            return text_type(o)
+
         if isinstance(o, ObjectId):
-            return str(o)
+            return text_type(o)
 
         return super(JSONEncoder, self).default(o)
 
@@ -134,7 +139,7 @@ class _number_str(float):
         self.o = o
 
     def __repr__(self):
-        return str(self.o)
+        return text_type(self.o)
 
 
 def includeme(config):

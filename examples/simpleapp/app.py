@@ -2,11 +2,13 @@ from baka import Baka
 from baka.log import log
 
 
-app = Baka(__name__)
+app = Baka(
+    __name__,
+    config_schema=True)
 
 
 @app.route('/')
-def home_page(req):
+def home_index(req):
     log.info('/')
     return {'home_page': 'Hello World'}
 
@@ -42,4 +44,9 @@ def event_post(root, request):
     }
 
 
-app.scan()
+@app.error_handler(404, renderer='restful')
+def error_page_notfound(context, request):
+    return {'found': 'clearing context'}
+
+
+app.include('simpleapp.view')

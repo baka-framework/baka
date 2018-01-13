@@ -8,6 +8,6 @@
 
     wsgi.py
 """
-from .app import app
+from simpleapp.app import app
 
 application = app
