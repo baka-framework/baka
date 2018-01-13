@@ -1,5 +1,5 @@
-Doc Pengguna
-------------
+Petunjuk Penggunaan
+-------------------
 
 This part of the documentation, which is mostly prose, begins with some
 background information about Baka, then focuses on step-by-step
@@ -14,7 +14,7 @@ instructions for web development with Baka.
    quickstart
 
 
-API Reference
+Referensi API
 -------------
 
 If you are looking for information on a specific function, class or
@@ -25,7 +25,7 @@ method, this part of the documentation is for you.
 
    api
 
-Additional Notes
+Catatan Tambahan
 ----------------
 
 Design notes, legal information and changelog are here for the interested.
