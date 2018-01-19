@@ -84,7 +84,7 @@ class Factory(object):
         request = system['request']
         with JSONAPIResponse(request.response) as resp:
             _in = u'Failed'
-            code, status = JSONAPIResponse.OK
+            code, status = request.response.status_code, request.response.status
             settings = self.info.settings
 
             format = request.accept.best_match([
