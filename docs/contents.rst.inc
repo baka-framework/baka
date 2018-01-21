@@ -1,3 +1,5 @@
+.. _petunjuk_penggunaan:
+
 Petunjuk Penggunaan
 -------------------
 
@@ -13,6 +15,8 @@ usahakan mengikuti langkah-langkah satu per satu instruksi dari development web 
    quickstart
 
 
+.. _referensi_api:
+
 Referensi API
 -------------
 
@@ -23,6 +27,9 @@ method, this part of the documentation is for you.
    :maxdepth: 2
 
    api
+
+
+.. _catatan_tambahan:
 
 Catatan Tambahan
 ----------------

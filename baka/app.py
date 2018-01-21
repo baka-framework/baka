@@ -20,117 +20,50 @@ from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.session import UnencryptedCookieSessionFactoryConfig
 from pyramid.view import AppendSlashNotFoundViewFactory
 
-from .config import config_yaml, trafaret_yaml
-from .log import log, logging_format
+from baka._compat import text_type
+from .config import trafaret_yaml
+from .log import log, _logging_format
 from .resources import METHODS, ViewDecorator, default_options_view, unsupported_method_view, _BakaExtensions
 from .routes import add_simple_route
 from .settings import SettingError
 
 
 class Baka(object):
+
     def __init__(self, package, session_key=None,
                  authn_policy=None, authz_policy=None,
                  config_schema=False, **settings):
         """initial config for singleton baka framework
 
         :param import_name: the name of the application package
+        :param session_key: secret key for session
+        :param authn_policy: authenticate policy middleware function
+        :param authz_policy: authorization policy middleware function
+        :param config_schema: boolean value for trafaret validator
         :param settings: *optional dict settings for pyramid configuration
         """
         self.package = package
-        self.__trafaret = trafaret_yaml
-        self.config_schema = config_schema
-
         session_factory = UnencryptedCookieSessionFactoryConfig(session_key)
         settings.update({
+            'secret_key': session_key,
             'session_factory': session_factory,
             'authentication_policy': authn_policy,
             'authorization_policy': authz_policy
         })
+
         self.config = self.configure(settings)
+        self.config.registry.package = self.package
         self.config.begin()
         self.config.add_view(AppendSlashNotFoundViewFactory(), context=NotFound)
         self.config.add_directive('add_ext', self.add_ext_config)
         self.config.include(__name__)
+        if config_schema:
+            self.config.registry.__trafaret = trafaret_yaml
+            self.config.add_config_validator()
         self.config.commit()
         self.registry = _BakaExtensions
-
-        # Only set up a default log handler if the
-        # end-user application didn't set anything up.
-        if not (logging.root.handlers and log.level == logging.NOTSET and settings.get('LOGGING')):
-            formatter = logging.Formatter(logging_format)
-            handler = logging.StreamHandler()
-            handler.setFormatter(formatter)
-            log.addHandler(handler)
-            log.setLevel(logging.INFO)
-
-        log.info('Baka Framework')
-
-    def __call__(self, env, response):
-        """Shortcut for :attr:`wsgi_app`."""
-        return self.wsgi_app(env, response)
-
-    def include(self, callable):
-        self.config.include(callable)
-
-    def exc_handler(self, exc, request):
-        return request.get_response(exc)
-
-    def config_schema(self, config):
-        self.__trafaret = self.__trafaret.merge(config)
-
-    @property
-    def name(self):
-        """The name of the application.  This is usually the import name
-        with the difference that it's guessed from the run file if the
-        import name is main.  This name is used as a display name when
-        Baka needs the name of the application.  It can be set and overridden
-        to change the value.
-        """
-
-        module = sys.modules[self.package]
-        f = getattr(module, '__file__', '')
-        if f in ['__init__.py', '__init__$py']:
-            # Module is a package
-            return module
-        # Go up one level to get package
-        package_name = module.__name__.rsplit('.', 1)[0]
-        return sys.modules[package_name]
-
-    # recurssion error for getting attribute name
-    # def __getattr__(self, name):
-    #     """ built-in method for get attribute baka object
-    #     :param name: selector
-    #     :return:
-    #     """
-    #     # allow directive extension names to work
-    #     directives = getattr(self.registry, '_directives', {})
-    #     c = directives.get(name)
-    #     if c is None:
-    #         raise AttributeError(name)
-    #
-    #     # Create a bound method (works on both Py2 and Py3)
-    #     # http://stackoverflow.com/a/1015405/209039
-    #     m = c.__get__(self, self.__class__)
-    #     return m
-
-    def add_ext_config(self, config, name, directive):
-        """ This does the same thing as :meth:`add_ext` but using for pyramid configuration
-        :param config: the config from pyramid configuration object
-        :param name: the name of directive
-        :param directive: the callback function directive
-        """
-        self.add_ext(name, directive)
-
-    def add_ext(self, name, directive):
-        """ Registry of baka directive
-        :param name: the name of directive
-        :param directive: the callback function directive
-        """
-        if name in vars(self).keys():
-            raise AttributeError(name)
-
-        c = DottedNameResolver().maybe_resolve(directive)
-        setattr(self, name, c)
+        _logging_format(self.config.get_settings())
+        log.info('🚀 started: Baka Framework')
 
     def configure(self, settings):
         """ This initial settings of pyramid Configurator
@@ -165,12 +98,47 @@ class Baka(object):
                 level = logging.DEBUG
             logging.getLogger('sqlalchemy.engine').setLevel(level)
 
-        # set from config file
-        if self.config_schema:
-            settings.update(
-                config_yaml(self.package, _yaml=self.__trafaret))
-
         return Configurator(settings=settings)
+
+    def include(self, callable):
+        self.config.include(callable)
+
+    @property
+    def name(self):
+        """The name of the application.  This is usually the import name
+        with the difference that it's guessed from the run file if the
+        import name is main.  This name is used as a display name when
+        Baka needs the name of the application.  It can be set and overridden
+        to change the value.
+        """
+
+        module = sys.modules[self.package]
+        f = getattr(module, '__file__', '')
+        if f in ['__init__.py', '__init__$py']:
+            # Module is a package
+            return module
+        # Go up one level to get package
+        package_name = module.__name__.rsplit('.', 1)[0]
+        return sys.modules[package_name]
+
+    def add_ext_config(self, config, name, directive):
+        """ This does the same thing as :meth:`add_ext` but using for pyramid configuration
+        :param config: the config from pyramid configuration object
+        :param name: the name of directive
+        :param directive: the callback function directive
+        """
+        self.add_ext(name, directive)
+
+    def add_ext(self, name, directive):
+        """ Registry of baka directive
+        :param name: the name of directive
+        :param directive: the callback function directive
+        """
+        if name in vars(self).keys():
+            raise AttributeError(name)
+
+        c = DottedNameResolver().maybe_resolve(directive)
+        setattr(self, name, c)
 
     def resource(self, path, **kwargs):
         def decorator(wrapped):
@@ -180,21 +148,20 @@ class Baka(object):
             wrapped.route_name = route_name
 
             for method in METHODS:
-                setattr(wrapped, method, type('ViewDecorator%s' % method,
-                                              (ViewDecorator, object),
-                                              {'request_method': method,
-                                               'state': wrapped,
-                                               'kwargs': kwargs,
-                                               'config': self.config
-                                               }))
+                setattr(wrapped, method,
+                        type('ViewDecorator%s' % method,
+                             (ViewDecorator, object),
+                             {'request_method': method,
+                              'state': wrapped,
+                              'kwargs': kwargs,
+                              'config': self.config
+                              }))
 
-            # def callback(scanner, name, cls):
             self.config.add_route(route_name, path, factory=wrapped)
             self.config.add_view(default_options_view, route_name=route_name,
-                            request_method='OPTIONS', permission=NO_PERMISSION_REQUIRED)
+                                 request_method='OPTIONS', permission=NO_PERMISSION_REQUIRED)
             self.config.add_view(unsupported_method_view, route_name=route_name, renderer='json')
 
-            # info = venusian.attach(wrapped, callback, 'pyramid', depth=depth)
             return wrapped
 
         return decorator
@@ -240,24 +207,11 @@ class Baka(object):
             log.debug(kwargs.get('request_method', 'GET'))
             log.debug(kwargs.get('route_name', 'route_name'))
 
-            # def callback(scanner, _name, wrapped):
-            #     config = scanner.config.with_package(info.module)
-
-                # Default to not appending slash
+            # Default to not appending slash
             if not "append_slash" in kwargs:
                 append_slash = False
 
-            # pylint: disable=W0142
             add_simple_route(self.config, wrapped, **kwargs)
-
-            # info = venusian.attach(wrapped, callback)
-
-            # if info.scope == 'class':  # pylint:disable=E1101
-            #     # if the decorator was attached to a method in a class, or
-            #     # otherwise executed at class scope, we need to set an
-            #     # 'attr' into the settings if one isn't already in there
-            #     if kwargs.get('attr') is None:
-            #         kwargs['attr'] = wrapped.__name__
 
             return wrapped
 
@@ -280,6 +234,9 @@ class Baka(object):
         options.setdefault('use_reloader', settings.get('debug_all'))
         options.setdefault('use_debugger', settings.get('debug_all'))
 
+        log.info('🌎  Listening on port {PORT}'.format(PORT=port))
+        log.info('💻 !Important, you are in development mode.')
+
         from werkzeug.serving import run_simple
         run_simple(host, port, self.config.make_wsgi_app(), **options)
 
@@ -293,6 +250,10 @@ class Baka(object):
         app = self.config.make_wsgi_app()
         return app(env, response)
 
+    def __call__(self, env, response):
+        """Shortcut for :attr:`wsgi_app`."""
+        return self.wsgi_app(env, response)
+
     def redirect(self, url):
         raise httpexceptions.HTTPFound(location=url)
 
@@ -305,21 +266,48 @@ class Baka(object):
     def notify(self, event):
         self.config.registry.notify(event)
 
-    def error_handler(self, code, **settings):
+    def exception_handler(self, **settings):
         def decorator(wrapped):
             settings['renderer'] = settings.get('renderer', 'json')
             settings['permission'] = settings.get('permission,', NO_PERMISSION_REQUIRED)
 
             target = DottedNameResolver().maybe_resolve(wrapped)
+
+            def err_func(context, request):
+                if not isinstance(context, Exception):
+                    context = request.exception or context
+                request.response.status = '509 {}'.format(text_type(context))
+                # request.response.status_code = 500
+                return target(context, request)
+
+            self.config.add_view(err_func, context=Exception, **settings)
+
+            return wrapped
+
+        return decorator
+
+
+    def error_handler(self, code, **settings):
+        def decorator(wrapped):
+            settings['renderer'] = settings.get('renderer', 'json')
+            settings['permission'] = settings.get('permission,', NO_PERMISSION_REQUIRED)
+            target = DottedNameResolver().maybe_resolve(wrapped)
             def err_func(context, request):
                 if not isinstance(context, Exception):
                     context = request.exception or context
                 request.response.status = context.status
+                request.response.status_code = code
                 return target(context, request)
 
             exc = type(httpexceptions.exception_response(code))
             if exc is not None:
-                self.config.add_view(err_func, context=exc, **settings)
+                view = err_func
+                if exc is NotFound:
+                    view = AppendSlashNotFoundViewFactory(err_func)
+            else:
+                exc = Exception
+
+            self.config.add_view(view, context=exc, **settings)
 
             return wrapped
 
@@ -327,5 +315,6 @@ class Baka(object):
 
 
 def includeme(config):
+    config.include('.config')
     config.include('.renderers')
     config.include('.routes')
