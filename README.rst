@@ -226,7 +226,7 @@ Saran dan Kontribusi
     -- Bung Hatta
 
 
-.. |docs| image:: https://readthedocs.org/projects/docs/baka-framework/?version=latest
+.. |docs| image:: https://readthedocs.org/projects/baka-framework/?version=latest
     :alt: Documentation Status
     :scale: 100%
-    :target: http://baka-framework.readthedocs.io/en/latest/?badge=latest
+    :target: https://baka-framework.readthedocs.io/en/latest/?badge=latest
