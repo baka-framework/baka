@@ -127,7 +127,7 @@ def add_simple_route(
 
 def includeme(config):
     config.add_directive('add_simple_route', add_simple_route)
-    settings = config.registry.settings
+    settings = config.get_settings()
     settings['baka.debug'] = \
         settings.get('debug_all') or \
         settings.get('pyramid.debug_all') or \

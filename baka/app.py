@@ -21,8 +21,8 @@ from pyramid.session import UnencryptedCookieSessionFactoryConfig
 from pyramid.view import AppendSlashNotFoundViewFactory
 
 from baka._compat import text_type
-from .config import config_yaml, trafaret_yaml
-from .log import log, logging_format
+from .config import trafaret_yaml
+from .log import log, _logging_format
 from .resources import METHODS, ViewDecorator, default_options_view, unsupported_method_view, _BakaExtensions
 from .routes import add_simple_route
 from .settings import SettingError
@@ -30,58 +30,78 @@ from .settings import SettingError
 
 class Baka(object):
 
-    __trafaret = trafaret_yaml
-
     def __init__(self, package, session_key=None,
                  authn_policy=None, authz_policy=None,
                  config_schema=False, **settings):
         """initial config for singleton baka framework
 
         :param import_name: the name of the application package
+        :param session_key: secret key for session
+        :param authn_policy: authenticate policy middleware function
+        :param authz_policy: authorization policy middleware function
+        :param config_schema: boolean value for trafaret validator
         :param settings: *optional dict settings for pyramid configuration
         """
         self.package = package
-        self.config_schema = config_schema
-
         session_factory = UnencryptedCookieSessionFactoryConfig(session_key)
         settings.update({
+            'secret_key': session_key,
             'session_factory': session_factory,
             'authentication_policy': authn_policy,
             'authorization_policy': authz_policy
         })
+
         self.config = self.configure(settings)
+        self.config.registry.package = self.package
         self.config.begin()
         self.config.add_view(AppendSlashNotFoundViewFactory(), context=NotFound)
         self.config.add_directive('add_ext', self.add_ext_config)
         self.config.include(__name__)
+        if config_schema:
+            self.config.registry.__trafaret = trafaret_yaml
+            self.config.add_config_validator()
         self.config.commit()
         self.registry = _BakaExtensions
+        _logging_format(self.config.get_settings())
+        log.info('🚀 started: Baka Framework')
 
-        # Only set up a default log handler if the
-        # end-user application didn't set anything up.
-        if not (logging.root.handlers and log.level == logging.NOTSET and settings.get('LOGGING')):
-            formatter = logging.Formatter(logging_format)
-            handler = logging.StreamHandler()
-            handler.setFormatter(formatter)
-            log.addHandler(handler)
-            log.setLevel(logging.INFO)
+    def configure(self, settings):
+        """ This initial settings of pyramid Configurator
+        :param settings: :dict settings of Configurator
+        :return: pyramid.config.Configurator
+        """
+        if settings.get('environ') is None:
+            environ = os.environ
+        if settings is None:
+            settings = {}
 
-        log.info('Baka Framework')
+        if settings.get('env') is not None:
+            for s in settings.get('env'):
+                try:
+                    result = s(environ)
+                except SettingError as e:
+                    log.warn(e)
 
-    def __call__(self, env, response):
-        """Shortcut for :attr:`wsgi_app`."""
-        return self.wsgi_app(env, response)
+                if result is not None:
+                    settings.update(result)
+
+        if 'secret_key' not in settings:
+            log.warn('No secret key provided: using transient key. Please '
+                     'configure the secret_key setting or the SECRET_KEY '
+                     'environment variable!')
+            settings['secret_key'] = os.urandom(64)
+
+        # Set up SQLAlchemy debug logging
+        if 'debug_query' in settings:
+            level = logging.INFO
+            if settings['debug_query'] == 'trace':
+                level = logging.DEBUG
+            logging.getLogger('sqlalchemy.engine').setLevel(level)
+
+        return Configurator(settings=settings)
 
     def include(self, callable):
         self.config.include(callable)
-
-    def exc_handler(self, exc, request):
-        return request.get_response(exc)
-
-    def include_schema(cls, config):
-        cls.__trafaret = cls.__trafaret.merge(config)
-
-    include_schema = classmethod(include_schema)
 
     @property
     def name(self):
@@ -120,46 +140,6 @@ class Baka(object):
         c = DottedNameResolver().maybe_resolve(directive)
         setattr(self, name, c)
 
-    def configure(self, settings):
-        """ This initial settings of pyramid Configurator
-        :param settings: :dict settings of Configurator
-        :return: pyramid.config.Configurator
-        """
-        if settings.get('environ') is None:
-            environ = os.environ
-        if settings is None:
-            settings = {}
-
-        if settings.get('env') is not None:
-            for s in settings.get('env'):
-                try:
-                    result = s(environ)
-                except SettingError as e:
-                    log.warn(e)
-
-                if result is not None:
-                    settings.update(result)
-
-        if 'secret_key' not in settings:
-            log.warn('No secret key provided: using transient key. Please '
-                     'configure the secret_key setting or the SECRET_KEY '
-                     'environment variable!')
-            settings['secret_key'] = os.urandom(64)
-
-        # Set up SQLAlchemy debug logging
-        if 'debug_query' in settings:
-            level = logging.INFO
-            if settings['debug_query'] == 'trace':
-                level = logging.DEBUG
-            logging.getLogger('sqlalchemy.engine').setLevel(level)
-
-        # set from config file
-        if self.config_schema:
-            settings.update(
-                config_yaml(self.package, _yaml=self.__trafaret))
-
-        return Configurator(settings=settings)
-
     def resource(self, path, **kwargs):
         def decorator(wrapped):
             route_name = kwargs.pop("route_name", None)
@@ -177,13 +157,11 @@ class Baka(object):
                               'config': self.config
                               }))
 
-            # def callback(scanner, name, cls):
             self.config.add_route(route_name, path, factory=wrapped)
             self.config.add_view(default_options_view, route_name=route_name,
                                  request_method='OPTIONS', permission=NO_PERMISSION_REQUIRED)
             self.config.add_view(unsupported_method_view, route_name=route_name, renderer='json')
 
-            # info = venusian.attach(wrapped, callback, 'pyramid', depth=depth)
             return wrapped
 
         return decorator
@@ -256,6 +234,9 @@ class Baka(object):
         options.setdefault('use_reloader', settings.get('debug_all'))
         options.setdefault('use_debugger', settings.get('debug_all'))
 
+        log.info('🌎  Listening on port {PORT}'.format(PORT=port))
+        log.info('💻 !Important, you are in development mode.')
+
         from werkzeug.serving import run_simple
         run_simple(host, port, self.config.make_wsgi_app(), **options)
 
@@ -268,6 +249,10 @@ class Baka(object):
         self.config.end()
         app = self.config.make_wsgi_app()
         return app(env, response)
+
+    def __call__(self, env, response):
+        """Shortcut for :attr:`wsgi_app`."""
+        return self.wsgi_app(env, response)
 
     def redirect(self, url):
         raise httpexceptions.HTTPFound(location=url)
@@ -306,7 +291,6 @@ class Baka(object):
         def decorator(wrapped):
             settings['renderer'] = settings.get('renderer', 'json')
             settings['permission'] = settings.get('permission,', NO_PERMISSION_REQUIRED)
-
             target = DottedNameResolver().maybe_resolve(wrapped)
             def err_func(context, request):
                 if not isinstance(context, Exception):
@@ -316,7 +300,6 @@ class Baka(object):
                 return target(context, request)
 
             exc = type(httpexceptions.exception_response(code))
-            log.info(exc)
             if exc is not None:
                 view = err_func
                 if exc is NotFound:
@@ -332,5 +315,6 @@ class Baka(object):
 
 
 def includeme(config):
+    config.include('.config')
     config.include('.renderers')
     config.include('.routes')

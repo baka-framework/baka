@@ -2,9 +2,7 @@ from baka import Baka
 from baka.log import log
 
 
-app = Baka(
-    __name__,
-    config_schema=True)
+app = Baka(__name__, config_schema=True)
 
 
 @app.route('/')

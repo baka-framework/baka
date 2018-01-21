@@ -66,7 +66,7 @@ class Factory(object):
     }
 
     def __init__(self, info):
-        """ Constructor: info will be an oect having the
+        """ Constructor: info will be an act having the
         following attributes: name (the renderer name), package
         (the package that was 'current' at the time the
         renderer was registered), type (the renderer type
@@ -86,14 +86,14 @@ class Factory(object):
             _in = u'Failed'
             code, status = request.response.status_code, request.response.status
             settings = self.info.settings
-
+            baka = settings.get('baka', {'baka': {}})
             format = request.accept.best_match([
                 'application/json',
                 'application/bson',
             ])
             request.response.content_type = format
-            if settings.get('baka')['meta']:
-                meta = {'meta': settings['baka'].get('meta', {})}
+            if baka.get('meta', True):
+                meta = {'meta': baka.get('meta', {})}
         value = resp.to_json(
             _in, code=code,
             status=status, message=value, **meta)
