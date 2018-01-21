@@ -1,6 +1,8 @@
 Baka Framework
 ==============
 
+|docs|
+
 `Baka Framework`_ adalah web application framework yang menggunakan core
 wsgi dari Pyramid.
 
@@ -222,3 +224,9 @@ Saran dan Kontribusi
     “ Keberanian bukan berarti tidak takut, keberanian berarti menaklukan ketakutan. ”
 
     -- Bung Hatta
+
+
+.. |docs| image:: https://readthedocs.org/projects/docs/baka-framework/?version=latest
+    :alt: Documentation Status
+    :scale: 100%
+    :target: http://baka-framework.readthedocs.io/en/latest/?badge=latest
