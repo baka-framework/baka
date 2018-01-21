@@ -1,7 +1,7 @@
 Baka Framework
 ==============
 
-|docs|
+|docs| |docs_dev|
 
 `Baka Framework`_ adalah web application framework yang menggunakan core
 wsgi dari Pyramid.
@@ -226,7 +226,12 @@ Saran dan Kontribusi
     -- Bung Hatta
 
 
-.. |docs| image:: https://readthedocs.org/projects/baka-framework/?version=latest
+.. |docs| image:: https://readthedocs.org/projects/baka-framework/badge/?version=latest
     :alt: Documentation Status
     :scale: 100%
     :target: https://baka-framework.readthedocs.io/en/latest/?badge=latest
+
+.. |docs_dev| image:: https://readthedocs.org/projects/baka-framework/badge/?version=develop
+    :alt: Documentation Status
+    :scale: 100%
+    :target: https://baka-framework.readthedocs.io/en/latest/?badge=develop
