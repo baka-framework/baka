@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import bson
 from bson.objectid import ObjectId
+from pyramid.renderers import JSON
 
 from baka._compat import text_type
 from .response import JSONAPIResponse
@@ -82,6 +83,7 @@ class Factory(object):
         dictionary containing available system values
         # (e.g. view, context, and request). """
         request = system['request']
+
         with JSONAPIResponse(request.response) as resp:
             _in = u'Failed'
             code, status = request.response.status_code, request.response.status
@@ -143,4 +145,6 @@ class _number_str(float):
 
 
 def includeme(config):
+    json_renderer = JSON(cls=JSONEncoder)
+    config.add_renderer('json', json_renderer)
     config.add_renderer('restful', Factory)
