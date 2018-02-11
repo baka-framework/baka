@@ -1,0 +1,2 @@
+include *.rst
+recursive-include baka *.html *.css *png *.in *.rst *.markdown *.md *.mkd *.xml *.py
