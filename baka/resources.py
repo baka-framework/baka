@@ -1,5 +1,5 @@
-import venusian
 from pyramid.httpexceptions import HTTPNoContent
+from pyramid.path import DottedNameResolver
 from zope.interface import implementer, Interface, Attribute
 
 METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
@@ -12,8 +12,7 @@ METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
 
 class BaseDecorator(object):
     def __call__(self, wrapped, depth=1):
-        info = venusian.attach(wrapped, self.callback, 'pyramid', depth=depth)
-        self.module = info.module
+        self.callback(self.config, wrapped)
         return wrapped
 
 
@@ -40,8 +39,8 @@ class ViewDecorator(BaseDecorator):
         self.view_arguments.update(self.kwargs)
         self.view_arguments.update(kw)
 
-    def callback(self, scanner, name, view):
-        config = scanner.config.with_package(self.module)
+    def callback(self, config, target):
+        view = DottedNameResolver().maybe_resolve(target)
         route_name = self.state.route_name
         # self.state.add_method(self.request_method, view)
         config.add_view(view,

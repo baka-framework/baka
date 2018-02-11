@@ -1,14 +1,16 @@
+import datetime
+
 from baka import Baka
 from baka.log import log
 
 
-app = Baka(__name__)
+app = Baka(__name__, config_schema=True)
 
 
 @app.route('/')
-def home_page(req):
+def home_index(req):
     log.info('/')
-    return {'home_page': 'Hello World'}
+    return {'home_page': 'Hello World', 'today': datetime.datetime.now().isoformat()}
 
 
 @app.route('/home')
@@ -35,11 +37,25 @@ def event_post(root, request):
     log.info(request.params)
 
     log.info(root._name)
-    params = request.params
+    params = request.param
     log.info(params.get('ok'))
     return {
         'post': 'event post post'
     }
 
 
-app.scan()
+@app.exception_handler()
+def exception(context, request):
+    return {'poll': 'good exception'}
+
+
+@app.error_handler(500, renderer='restful')
+def error_page_notfound(context, request):
+    return {'found': 'clearing context'}
+
+
+@app.error_handler(301, renderer='restful')
+def error_page_server(context, request):
+    return {'found': 'Internal server error'}
+
+app.include('simpleapp.view')

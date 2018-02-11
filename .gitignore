@@ -141,3 +141,4 @@ fabric.properties
 
 # custom
 *.DS_Store
+/examples/uwsgi.ini

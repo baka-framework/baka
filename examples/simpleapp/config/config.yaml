@@ -2,5 +2,5 @@ package: simpleapp
 baka:
   debug_all: True
   meta:
-    app: Test Baka
+    app: Baka Simpleapp
     version: '1.0'

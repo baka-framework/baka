@@ -1,9 +1,7 @@
 import os
 
-from pyramid.httpexceptions import WSGIHTTPException
-from pyramid.interfaces import IViewMapperFactory, IExceptionResponse
+from pyramid.interfaces import IViewMapperFactory
 from pyramid.path import DottedNameResolver
-from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.settings import asbool
 
 from .log import log
@@ -129,17 +127,17 @@ def add_simple_route(
 
 def includeme(config):
     config.add_directive('add_simple_route', add_simple_route)
-    settings = config.registry.settings
+    settings = config.get_settings()
     settings['baka.debug'] = \
         settings.get('debug_all') or \
         settings.get('pyramid.debug_all') or \
         asbool(os.environ.get('PYRAMID_DEBUG_ALL')) or \
         asbool(os.environ.get('BAKA_DEBUG'))
-    if not settings['baka.debug']:
-        config.add_view('baka.error.generic',
-                        context=Exception, renderer='json',
-                        permission=NO_PERMISSION_REQUIRED)
-    config.add_view('baka.error.http_error', context=IExceptionResponse, renderer='json')
-    config.add_view('baka.error.http_error', context=WSGIHTTPException, renderer='json')
+    # if not settings['baka.debug']:
+    #     config.add_view('baka.error.generic',
+    #                     context=Exception, renderer='json',
+    #                     permission=NO_PERMISSION_REQUIRED)
+    # config.add_view('baka.error.http_error', context=IExceptionResponse, renderer='json')
+    # config.add_view('baka.error.http_error', context=WSGIHTTPException, renderer='json')
     config.add_notfound_view('baka.error.notfound', renderer='json')
     config.add_forbidden_view('baka.error.forbidden', renderer='json')

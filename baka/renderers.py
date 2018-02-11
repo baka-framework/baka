@@ -1,11 +1,14 @@
 import enum
 import json
+import uuid
 from datetime import datetime, date
 from decimal import Decimal
 
 import bson
 from bson.objectid import ObjectId
+from pyramid.renderers import JSON
 
+from baka._compat import text_type
 from .response import JSONAPIResponse
 
 
@@ -64,7 +67,7 @@ class Factory(object):
     }
 
     def __init__(self, info):
-        """ Constructor: info will be an oect having the
+        """ Constructor: info will be an act having the
         following attributes: name (the renderer name), package
         (the package that was 'current' at the time the
         renderer was registered), type (the renderer type
@@ -80,18 +83,19 @@ class Factory(object):
         dictionary containing available system values
         # (e.g. view, context, and request). """
         request = system['request']
+
         with JSONAPIResponse(request.response) as resp:
             _in = u'Failed'
-            code, status = JSONAPIResponse.OK
+            code, status = request.response.status_code, request.response.status
             settings = self.info.settings
-
+            baka = settings.get('baka', {'baka': {}})
             format = request.accept.best_match([
                 'application/json',
                 'application/bson',
             ])
             request.response.content_type = format
-            if settings.get('baka')['meta']:
-                meta = {'meta': settings['baka'].get('meta', {})}
+            if baka.get('meta', True):
+                meta = {'meta': baka.get('meta', {})}
         value = resp.to_json(
             _in, code=code,
             status=status, message=value, **meta)
@@ -120,8 +124,11 @@ class JSONEncoder(json.JSONEncoder):
         if isinstance(o, Decimal):
             return _number_str(o)
 
+        if isinstance(o, uuid.UUID):
+            return text_type(o)
+
         if isinstance(o, ObjectId):
-            return str(o)
+            return text_type(o)
 
         return super(JSONEncoder, self).default(o)
 
@@ -134,8 +141,10 @@ class _number_str(float):
         self.o = o
 
     def __repr__(self):
-        return str(self.o)
+        return text_type(self.o)
 
 
 def includeme(config):
+    json_renderer = JSON(cls=JSONEncoder)
+    config.add_renderer('json', json_renderer)
     config.add_renderer('restful', Factory)
