@@ -221,15 +221,15 @@ Saran dan Kontribusi
 
 .. |license| image:: https://img.shields.io/pypi/l/baka.svg
     :alt: License
-    :target: https://pypi.python.org/pypi/baka/0.4.1
+    :target: https://pypi.python.org/pypi/baka/0.4.2
 
 .. |pypi| image:: https://img.shields.io/pypi/v/baka.svg
     :alt: Pypi package manager
-    :target: https://pypi.python.org/pypi/baka/0.4.1
+    :target: https://pypi.python.org/pypi/baka/0.4.2
 
 .. |python| image:: https://img.shields.io/pypi/pyversions/baka.svg
     :alt: Python version
-    :target: https://pypi.python.org/pypi/baka/0.4.1
+    :target: https://pypi.python.org/pypi/baka/0.4.2
 
 .. |docs| image:: https://readthedocs.org/projects/baka-framework/badge/?version=latest
     :alt: Documentation Status
