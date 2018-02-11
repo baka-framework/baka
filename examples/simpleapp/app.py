@@ -1,3 +1,5 @@
+import datetime
+
 from baka import Baka
 from baka.log import log
 
@@ -8,7 +10,7 @@ app = Baka(__name__, config_schema=True)
 @app.route('/')
 def home_index(req):
     log.info('/')
-    return {'home_page': 'Hello World'}
+    return {'home_page': 'Hello World', 'today': datetime.datetime.now().isoformat()}
 
 
 @app.route('/home')

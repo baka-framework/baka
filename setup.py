@@ -1,15 +1,25 @@
 import ast
 import re
-from codecs import open
+import docutils
 
 from setuptools import setup, find_packages
+
+# To use a consistent encoding
+from codecs import open
+from os import path
+
+here = path.abspath(path.dirname(__file__))
+
+# Get the long description from the README file
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+    long_description = f.read()
 
 NAME = 'baka'
 DESC = 'Baka framework built top pyramid'
 AUTHOR = 'Nanang Suryadi'
 AUTHOR_EMAIL = 'nanang.ask@gmail.com'
 URL = 'https://github.com/baka-framework/baka.git'
-LICENSE = 'GNU GPL License'
+LICENSE = 'BSD License'
 KEYWORDS = ['baka', 'framework', 'pyramid']
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -31,15 +41,28 @@ INSTALL_REQUIRES = [
     'trafaret>=0.12.1.dev0',
     'trafaret_config>=1.0.1'
 ]
+
+dev_extras = [
+    'nose',
+    'nose-parameterized',
+    'nosexcover',
+    'coverage',
+    'mock',
+    'webtest',
+    'pyramid',
+    'baka',
+
+    'readme',
+    'twine',
+]
+
 EXTRAS_REQUIRE = {
-    'dev': ['check-manifest'],
+    'dev': dev_extras,
+    'docs': ['Sphinx'],
     'test': ['coverage'],
 }
 ENTRY_POINTS = """
       """
-
-with open('README.rst', encoding='utf-8') as fp:
-    LONGDESC = fp.read()
 
 _version_re = re.compile(r'__version__\s+=\s+(.*)')
 
@@ -51,7 +74,7 @@ with open('baka/__init__.py', 'rb') as f:
 setup(name=NAME,
       version=version,
       description=DESC,
-      long_description=LONGDESC,
+      long_description=long_description,
       classifiers=CLASSIFIERS,
       keywords=KEYWORDS,
       author=AUTHOR,
