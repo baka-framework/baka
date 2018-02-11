@@ -3,6 +3,8 @@
 Hai, Perkenalkan Baka framework
 ===============================
 
+|docs| |python| |pypi| |license|
+
 .. image:: _static/logo-full.png
    :alt: Baka: web development, as simple as build
    :class: float-class
@@ -23,3 +25,20 @@ Librari tersebut tidak terdokumentasi disini. Jika ingin mempelajari lebih lanju
 .. _Werkzeug: http://werkzeug.pocoo.org/
 
 .. include:: contents.rst.inc
+
+
+.. |license| image:: https://img.shields.io/pypi/l/baka.svg
+    :alt: License
+    :target: https://pypi.python.org/pypi/baka/0.4.1
+
+.. |pypi| image:: https://img.shields.io/pypi/v/baka.svg
+    :alt: Pypi package manager
+    :target: https://pypi.python.org/pypi/baka/0.4.1
+
+.. |python| image:: https://img.shields.io/pypi/pyversions/baka.svg
+    :alt: Python version
+    :target: https://pypi.python.org/pypi/baka/0.4.1
+
+.. |docs| image:: https://readthedocs.org/projects/baka-framework/badge/?version=latest
+    :alt: Documentation Status
+    :target: https://baka-framework.readthedocs.io/en/latest/?badge=latest

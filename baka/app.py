@@ -17,7 +17,7 @@ from pyramid.config import Configurator
 from pyramid.exceptions import NotFound
 from pyramid.path import DottedNameResolver
 from pyramid.security import NO_PERMISSION_REQUIRED
-from pyramid.session import UnencryptedCookieSessionFactoryConfig
+from pyramid.session import SignedCookieSessionFactory
 from pyramid.view import AppendSlashNotFoundViewFactory
 
 from baka._compat import text_type
@@ -30,7 +30,7 @@ from .settings import SettingError
 
 class Baka(object):
 
-    def __init__(self, package, session_key=None,
+    def __init__(self, package, session_key='sekret',
                  authn_policy=None, authz_policy=None,
                  config_schema=False, **settings):
         """initial config for singleton baka framework
@@ -43,7 +43,7 @@ class Baka(object):
         :param settings: *optional dict settings for pyramid configuration
         """
         self.package = package
-        session_factory = UnencryptedCookieSessionFactoryConfig(session_key)
+        session_factory = SignedCookieSessionFactory(session_key)
         settings.update({
             'secret_key': session_key,
             'session_factory': session_factory,
