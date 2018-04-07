@@ -1,6 +1,9 @@
+import sys
 import pkg_resources
 import trafaret as T
 from trafaret_config import parse_and_validate, ConfigError
+
+from baka.log import log
 
 trafaret_yaml = T.Dict({
     T.Key('package'): T.String(),
@@ -17,17 +20,19 @@ trafaret_yaml = T.Dict({
 def merge_yaml(cls, config):
     return cls.merge(config)
 
-def config_yaml(config, _yaml=None, config_file=None):
-    package = config.registry.package
-    config_file = '/'.join(('config', config_file or 'config.yaml'))
-    config_dir = pkg_resources.resource_string(package, config_file)
-
+def config_yaml(registry, _yaml=None, config_file=None):
     if _yaml is None:
         _yaml = {}
-    yaml = config.registry.get('__trafaret', None)
+    yaml = registry.trafaret
+    yaml = trafaret_yaml if yaml is None else yaml
+    return yaml.merge(_yaml)
+
+def validator_settings(registry, settings):
+    config_file = '/'.join(('config', settings.get('config') or 'config.yaml'))
+    config_dir = pkg_resources.resource_string(registry.package, config_file)
+    yaml = registry.trafaret
     if yaml is None:
         yaml = trafaret_yaml
-    yaml = yaml.merge(_yaml)
     try:
         settings = parse_and_validate(
             config_dir.decode('utf-8'),
@@ -35,23 +40,32 @@ def config_yaml(config, _yaml=None, config_file=None):
             filename='config.yaml')
     except ConfigError as e:
         e.output()
-        raise e
+        log.error(e)
+        sys.exit(1)
 
     return settings
 
 
+def add_validator_settings(config):
+    settings = config.get_settings()
+    config.add_settings(validator_settings(config.registry, settings))
+
+
+def add_trafaret_validator(config, yaml=None):
+    """Augment the :term:`deployment settings` with one or more
+        key/value pairs.
+
+        You may pass a dictionary::
+
+           config.add_settings({'external_uri':'http://example.com'})
+
+        Or a set of key/value pairs::
+
+           config.add_settings(external_uri='http://example.com')
+    """
+    config.registry.trafaret = config_yaml(config.registry, _yaml=yaml)
+
+
 def includeme(config):
-    def add_trafaret_validator(cfg, yaml=None, **kwargs):
-        """Augment the :term:`deployment settings` with one or more
-            key/value pairs.
-
-            You may pass a dictionary::
-
-               config.add_settings({'external_uri':'http://example.com'})
-
-            Or a set of key/value pairs::
-
-               config.add_settings(external_uri='http://example.com')
-        """
-        cfg.add_settings(config_yaml(cfg, _yaml=yaml, **kwargs))
     config.add_directive('add_config_validator', add_trafaret_validator)
+    config.add_directive('get_settings_validator', add_validator_settings)

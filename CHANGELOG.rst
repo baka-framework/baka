@@ -18,6 +18,7 @@ Major release, unreleased codename ``aiko``
 - add exception handler function, ``exception_handler`` route, default code 509 dengan pesan status berisi error exception `(resiliency)` methodologi.
 - add ``trafaret`` validator, default False untuk `config_schema` values.
 - add directive ``add_config_validator``, untuk schema trafaret validator.
+- add directive ``get_settings_validator``, untuk menvalidasi trafaret validator.
 - custom JSON renderer, ``JSONEncoder``, type object dump (ObjectId untuk mongodb id); uuid type; datetime type; EnumInt Type; enum
 
 

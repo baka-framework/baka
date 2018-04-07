@@ -30,9 +30,10 @@ from .settings import SettingError
 
 class Baka(object):
 
-    def __init__(self, package, session_key='sekret',
+    def __init__(self, package,
+                 session_key='sekret',
                  authn_policy=None, authz_policy=None,
-                 config_schema=False, **settings):
+                 **settings):
         """initial config for singleton baka framework
 
         :param import_name: the name of the application package
@@ -53,17 +54,17 @@ class Baka(object):
 
         self.config = self.configure(settings)
         self.config.registry.package = self.package
+        log.info(self.config.registry)
         self.config.begin()
         self.config.add_view(AppendSlashNotFoundViewFactory(), context=NotFound)
         self.config.add_directive('add_ext', self.add_ext_config)
+
+        self.config.registry.trafaret = None
         self.config.include(__name__)
-        if config_schema:
-            self.config.registry.__trafaret = trafaret_yaml
-            self.config.add_config_validator()
-        self.config.commit()
         self.registry = _BakaExtensions
         _logging_format(self.config.get_settings())
-        log.info('🚀 started: Baka Framework')
+        self.config.commit()
+        print('🚀 started: Baka Framework')
 
     def configure(self, settings):
         """ This initial settings of pyramid Configurator
@@ -234,8 +235,8 @@ class Baka(object):
         options.setdefault('use_reloader', settings.get('debug_all'))
         options.setdefault('use_debugger', settings.get('debug_all'))
 
-        log.info('🌎  Listening on port {PORT}'.format(PORT=port))
-        log.info('💻 !Important, you are in development mode.')
+        print('🌎  Listening on port {PORT}'.format(PORT=port))
+        print('💻 !Important, you are in development mode.')
 
         from werkzeug.serving import run_simple
         run_simple(host, port, self.config.make_wsgi_app(), **options)
