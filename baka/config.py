@@ -12,7 +12,8 @@ trafaret_yaml = T.Dict({
         T.Key('meta', optional=True): T.Dict({
             T.Key('version', optional=True): T.String(),
             T.Key('app', optional=True): T.String(),
-        })
+        }),
+        T.Key('validator', optional=True, default=False): T.Bool(),
     }),
 })
 

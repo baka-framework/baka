@@ -20,6 +20,7 @@ Major release, unreleased codename ``aiko``
 - add directive ``add_config_validator``, untuk schema trafaret validator.
 - add directive ``get_settings_validator``, untuk menvalidasi trafaret validator.
 - custom JSON renderer, ``JSONEncoder``, type object dump (ObjectId untuk mongodb id); uuid type; datetime type; EnumInt Type; enum
+- add validator config key, ``validator``, default False, untuk menjalankan fungsi validator dari ``get_settings_validator`` pada setiap baka plugin
 
 
 .. _Bakadocs: http://baka-framework.readthedocs.io/en/latest/
